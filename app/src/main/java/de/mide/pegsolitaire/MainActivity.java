@@ -29,6 +29,8 @@ import android.widget.Toast;
 import de.mide.pegsolitaire.model.PlaceStatusEnum;
 import de.mide.pegsolitaire.model.SpacePosition;
 
+import java.lang.Math;
+
 public class MainActivity extends AppCompatActivity implements OnClickListener {
 
     public static final String TAG4LOGGING = "PegSolitaire";
@@ -462,41 +464,39 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         if (startRow != targetRow && startColumn != targetColumn) {
             return null;
         } else if (startColumn == targetColumn) {
-            int skippedPegCount = 0;
-            SpacePosition skippedPosition = null;
-            if (startRow > targetRow) {
-                int temp = startRow;
-                startRow = targetRow;
-                targetRow = temp;
+            if (Math.abs(startRow - targetRow) == 1) {
+                return null;
             }
-            for (int i = startRow + 1; i < targetRow; i++) {
-                if (_placeArray[startColumn][i] == PEG) {
-                    skippedPegCount++;
-                    if (skippedPegCount >= 2) {
+            int direction = (startRow < targetRow) ? 1 : -1;
+            if (_placeArray[startColumn][targetRow - direction] != PEG) {
+                return null;
+            } else {
+                int row = startRow + direction;
+                while (row != targetRow - direction) {
+                    if (_placeArray[startRow][row] == PEG) {
                         return null;
                     }
-                    skippedPosition = new SpacePosition(startColumn, i);
+                    row += direction;
                 }
+                return new SpacePosition(startColumn, targetRow - direction);
             }
-            return skippedPosition;
         } else {
-            int skippedPegCount = 0;
-            SpacePosition skippedPosition = null;
-            if (startColumn > targetColumn) {
-                int temp = startColumn;
-                startColumn = targetColumn;
-                targetColumn = temp;
+            if (Math.abs(startColumn - targetColumn) == 1) {
+                return null;
             }
-            for (int i = startColumn + 1; i < targetColumn; i++) {
-                if (_placeArray[i][startRow] == PEG) {
-                    skippedPegCount++;
-                    if (skippedPegCount >= 2) {
+            int direction = (startColumn < targetColumn) ? 1 : -1;
+            if (_placeArray[targetColumn - direction][startRow] != PEG) {
+                return null;
+            } else {
+                int column = startColumn + direction;
+                while (column != targetColumn - direction) {
+                    if (_placeArray[column][startRow] == PEG) {
                         return null;
                     }
-                    skippedPosition = new SpacePosition(i, startRow);
+                    column += direction;
                 }
+                return new SpacePosition(targetColumn - direction, startRow);
             }
-            return skippedPosition;
         }
     }
 
