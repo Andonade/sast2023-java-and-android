@@ -187,6 +187,13 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
      */
     public void selectedNewGame() {
         // TODO
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        dialogBuilder.setTitle("进行新游戏");
+        dialogBuilder.setMessage("是否开始新游戏");
+        dialogBuilder.setPositiveButton("是", (DialogInterface, id) -> initializeBoard());
+
+        AlertDialog dialog = dialogBuilder.create();
+        dialog.show();
     }
 
 
@@ -261,6 +268,11 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         button.setTag(pos);
 
         // TODO
+        if (isPeg) {
+            button.setText(TOKEN_MARK);
+            _numberOfPegs++;
+        }
+        _gridLayout.addView(button);
     }
 
 
@@ -295,7 +307,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         Button clickedButton = (Button) view;
 
         SpacePosition targetPosition = (SpacePosition) clickedButton.getTag();
-
         // 获取被点击的按钮的位置
         int indexColumn = targetPosition.getIndexColumn();
         int indexRow = targetPosition.getIndexRow();
@@ -305,10 +316,44 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
 
             case PEG:
                 // TODO
+                if (clickedButton.getCurrentTextColor() == TEXT_COLOR_RED) {
+                    clickedButton.setTextColor(TEXT_COLOR_BROWN);
+                } else {
+                    for (int i = 0; i < _sizeColumn; i++) {
+                        for (int j = 0; j < _sizeRow; j++) {
+                            if (_placeArray[i][j] == PEG) {
+                                Button button = getButtonFromPosition(new SpacePosition(i, j));
+                                if (button.getCurrentTextColor() == TEXT_COLOR_RED) {
+                                    button.setTextColor(TEXT_COLOR_BROWN);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    clickedButton.setTextColor(TEXT_COLOR_RED);
+                }
                 break;
 
             case SPACE:
                 // TODO
+                for (int i = 0; i < _sizeColumn; i++) {
+                    for (int j = 0; j < _sizeRow; j++) {
+                        if (_placeArray[i][j] == PEG) {
+                            Button button = getButtonFromPosition(new SpacePosition(i, j));
+                            if (button.getCurrentTextColor() == TEXT_COLOR_RED) {
+                                button.setTextColor(TEXT_COLOR_BROWN);
+                                SpacePosition startPosition = (SpacePosition) button.getTag();
+                                SpacePosition skippedPosition = getSkippedPosition(startPosition, targetPosition);
+                                if (skippedPosition == null) {
+                                    Toast.makeText(this, "无法跳到该位置", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    jumpToPosition(button, clickedButton, getButtonFromPosition(skippedPosition));
+                                }
+                                return;
+                            }
+                        }
+                    }
+                }
                 break;
 
             default:
@@ -329,7 +374,19 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
     private void jumpToPosition(Button startButton, Button targetButton, Button skippedButton) {
 
         // TODO
+        startButton.setText("");
+        skippedButton.setText("");
+        targetButton.setText(TOKEN_MARK);
 
+        SpacePosition startPos = (SpacePosition) startButton.getTag();
+        SpacePosition targetPos = (SpacePosition) targetButton.getTag();
+        SpacePosition skippedPos = (SpacePosition) skippedButton.getTag();
+
+        _placeArray[startPos.getIndexColumn()][startPos.getIndexRow()] = SPACE;
+        _placeArray[targetPos.getIndexColumn()][targetPos.getIndexRow()] = PEG;
+        _placeArray[skippedPos.getIndexColumn()][skippedPos.getIndexRow()] = SPACE;
+
+        _numberOfSteps++;
         _numberOfPegs--;
         updateDisplayStepsNumber();
         if (_numberOfPegs == 1) {
@@ -398,7 +455,49 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
      */
     private SpacePosition getSkippedPosition(SpacePosition startPos, SpacePosition targetPos) {
         // TODO
-        return null;
+        int startColumn = startPos.getIndexColumn();
+        int startRow = startPos.getIndexRow();
+        int targetColumn = targetPos.getIndexColumn();
+        int targetRow = targetPos.getIndexRow();
+        if (startRow != targetRow && startColumn != targetColumn) {
+            return null;
+        } else if (startColumn == targetColumn) {
+            int skippedPegCount = 0;
+            SpacePosition skippedPosition = null;
+            if (startRow > targetRow) {
+                int temp = startRow;
+                startRow = targetRow;
+                targetRow = temp;
+            }
+            for (int i = startRow + 1; i < targetRow; i++) {
+                if (_placeArray[startColumn][i] == PEG) {
+                    skippedPegCount++;
+                    if (skippedPegCount >= 2) {
+                        return null;
+                    }
+                    skippedPosition = new SpacePosition(startColumn, i);
+                }
+            }
+            return skippedPosition;
+        } else {
+            int skippedPegCount = 0;
+            SpacePosition skippedPosition = null;
+            if (startColumn > targetColumn) {
+                int temp = startColumn;
+                startColumn = targetColumn;
+                targetColumn = temp;
+            }
+            for (int i = startColumn + 1; i < targetColumn; i++) {
+                if (_placeArray[i][startRow] == PEG) {
+                    skippedPegCount++;
+                    if (skippedPegCount >= 2) {
+                        return null;
+                    }
+                    skippedPosition = new SpacePosition(i, startRow);
+                }
+            }
+            return skippedPosition;
+        }
     }
 
     /**
@@ -412,6 +511,34 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             for(int j = 0; j < _sizeRow; j++){
                 if(_placeArray[i][j] == PEG){
                     // TODO
+                    for (int k = j - 1; k > 0; k--) {
+                        if (_placeArray[i][k] == SPACE) {
+                            if (getSkippedPosition(new SpacePosition(i, j), new SpacePosition(i, k)) != null) {
+                                return true;
+                            }
+                        }
+                    }
+                    for (int k = j + 1; k < _sizeRow; k++) {
+                        if (_placeArray[i][k] == SPACE) {
+                            if (getSkippedPosition(new SpacePosition(i, j), new SpacePosition(i, k)) != null) {
+                                return true;
+                            }
+                        }
+                    }
+                    for (int l = i - 1; l > 0; l--) {
+                        if (_placeArray[l][j] == SPACE) {
+                            if (getSkippedPosition(new SpacePosition(i, j), new SpacePosition(l, j)) != null) {
+                                return true;
+                            }
+                        }
+                    }
+                    for (int l = i + 1; l < _sizeColumn; l++) {
+                        if (_placeArray[l][j] == SPACE) {
+                            if (getSkippedPosition(new SpacePosition(i, j), new SpacePosition(l, j)) != null) {
+                                return true;
+                            }
+                        }
+                    }
                 }
             }
         }
