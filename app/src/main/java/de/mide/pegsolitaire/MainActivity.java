@@ -1,6 +1,7 @@
 package de.mide.pegsolitaire;
 
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.view.View;
 import android.view.View.OnClickListener;
 
@@ -23,8 +24,11 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.GridLayout;
+import android.widget.LinearLayout;
 import android.widget.Space;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.EditText;
 
 import de.mide.pegsolitaire.model.PlaceStatusEnum;
 import de.mide.pegsolitaire.model.SpacePosition;
@@ -94,6 +98,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
      */
     private GridLayout _gridLayout = null;
 
+    private SharedPreferences _data = null;
 
     /**
      * 用于处理点击棋盘上的棋子的事件。
@@ -107,6 +112,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         Log.i(TAG4LOGGING, "column=" + _sizeColumn + ", row=" + _sizeRow + "px:");
 
         _gridLayout = findViewById(R.id.boardGridLayout);
+
+        _data = getSharedPreferences("best_step", 0);
 
         displayResolutionEvaluate();
         actionBarConfiguration();
@@ -174,12 +181,14 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
     public boolean onOptionsItemSelected(MenuItem item) {
 
         if (item.getItemId() == R.id.action_new_game) {
-
             selectedNewGame();
             return true;
-
-        } else
+        } else if (item.getItemId() == R.id.action_hof) {
+            selectedHOF();
+            return true;
+        } else {
             return super.onOptionsItemSelected(item);
+        }
     }
 
     /**
@@ -196,6 +205,24 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
 
         AlertDialog dialog = dialogBuilder.create();
         dialog.show();
+    }
+
+    public void selectedHOF() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("名人堂🏆");
+        builder.setPositiveButton("确定", (DialogInterface, id) -> {});
+
+        int bestStep = _data.getInt("step", -1);
+        String username = _data.getString("username", "");
+
+        if (bestStep == -1) {
+            builder.setMessage("还没有历史记录呢");
+        } else {
+            builder.setMessage("最佳步数: " + bestStep + "\n创造者: " + username);
+        }
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
     }
 
 
@@ -318,6 +345,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
 
             case PEG:
                 // TODO
+                _selectedPegMoved = false;
                 if (clickedButton.getCurrentTextColor() == TEXT_COLOR_RED) {
                     clickedButton.setTextColor(TEXT_COLOR_BROWN);
                 } else {
@@ -343,7 +371,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                         if (_placeArray[i][j] == PEG) {
                             Button button = getButtonFromPosition(new SpacePosition(i, j));
                             if (button.getCurrentTextColor() == TEXT_COLOR_RED) {
-                                button.setTextColor(TEXT_COLOR_BROWN);
                                 SpacePosition startPosition = (SpacePosition) button.getTag();
                                 SpacePosition skippedPosition = getSkippedPosition(startPosition, targetPosition);
                                 if (skippedPosition == null) {
@@ -380,6 +407,9 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         skippedButton.setText("");
         targetButton.setText(TOKEN_MARK);
 
+        startButton.setTextColor(TEXT_COLOR_BROWN);
+        targetButton.setTextColor(TEXT_COLOR_RED);
+
         SpacePosition startPos = (SpacePosition) startButton.getTag();
         SpacePosition targetPos = (SpacePosition) targetButton.getTag();
         SpacePosition skippedPos = (SpacePosition) skippedButton.getTag();
@@ -388,7 +418,11 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         _placeArray[targetPos.getIndexColumn()][targetPos.getIndexRow()] = PEG;
         _placeArray[skippedPos.getIndexColumn()][skippedPos.getIndexRow()] = SPACE;
 
-        _numberOfSteps++;
+        if (!_selectedPegMoved) {
+            _numberOfSteps++;
+        }
+        _selectedPegMoved = true;
+
         _numberOfPegs--;
         updateDisplayStepsNumber();
         if (_numberOfPegs == 1) {
@@ -417,10 +451,29 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
      * 在扩展版本中，你需要在这里添加一个输入框，让用户输入他的名字。
      */
     private void showVictoryDialog() {
+        EditText usernameInput = new EditText(this);
+        usernameInput.setHint("请输入你的名字");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.addView(usernameInput);
+
+        LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) usernameInput.getLayoutParams();
+        layoutParams.width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        layoutParams.weight = 1;
+
         AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
         dialogBuilder.setTitle("胜利");
         dialogBuilder.setMessage("你赢了！");
+        dialogBuilder.setView(layout);
         dialogBuilder.setPositiveButton("再来一局", (dialogInterface, i) -> {
+            final String username = usernameInput.getText().toString();
+            int bestStep = _data.getInt("step", -1);
+            if (bestStep > _numberOfSteps || bestStep == -1) {
+                SharedPreferences.Editor editor = _data.edit();
+                editor.putInt("step", _numberOfSteps);
+                editor.putString("username", username);
+                editor.apply();
+            }
             initializeBoard();  // 重新开始游戏
         });
 
@@ -473,7 +526,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             } else {
                 int row = startRow + direction;
                 while (row != targetRow - direction) {
-                    if (_placeArray[startRow][row] == PEG) {
+                    if (_placeArray[startColumn][row] == PEG) {
                         return null;
                     }
                     row += direction;

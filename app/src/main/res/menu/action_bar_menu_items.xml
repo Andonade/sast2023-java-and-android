@@ -3,9 +3,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
+        android:title="名人堂"
+        android:id="@+id/action_hof"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_new_game"
         android:title="新游戏"
         app:showAsAction="ifRoom" />
-
 
 </menu>
