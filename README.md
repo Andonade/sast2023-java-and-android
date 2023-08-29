@@ -2,9 +2,9 @@
 
 2023 酒井科协暑培 Java & Android 课程作业
 
-代码框架 By (Clancy)[https://github.com/Zhu-Yuzhang]
+代码框架 By [Clancy](https://github.com/Zhu-Yuzhang)
 
-填空 & 扩展功能 By (Andonade)[https://github.com/Andonade]
+填空 & 扩展功能 By [Andonade](https://github.com/Andonade)
 
 ## 实现功能
 
